@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Cloudy Particles (Realtime)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="./style_cloud.csss" />
+</head>
+<body>
+  <header>
+    <div id="city">Locating…</div>
+    <div id="desc">—</div>
+    <div id="temp">—</div>
+    <div id="wind-v">—</div>
+    <div id="humidity">—</div>
+    <div id="aqi">—</div>
+    <div id="cloud">—</div>
+  </header>
+
+  <canvas id="cloud-canvas"></canvas>
+
+  <footer>
+    <small>Data: WeatherAPI realtime (cloud%, PM2.5)</small>
+  </footer>
+
+  <script src="./Cloudscript.js"></script>
+</body>
+</html>

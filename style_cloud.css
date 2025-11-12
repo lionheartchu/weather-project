@@ -1,0 +1,8 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: #0b0e12; color: #e9eef5; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+header, footer { position: fixed; left: 0; right: 0; padding: 10px 14px; background: linear-gradient(to bottom, rgba(11,14,18,.75), rgba(11,14,18,0)); pointer-events: none; }
+header { top: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 16px; row-gap: 2px; }
+header > div { pointer-events: auto; }
+footer { bottom: 0; text-align: center; background: linear-gradient(to top, rgba(11,14,18,.75), rgba(11,14,18,0)); }
+#cloud-canvas { display: block; width: 100vw; height: 100vh; }
+small { opacity: .6; }
