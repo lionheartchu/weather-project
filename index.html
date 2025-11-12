@@ -1,20 +1,43 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weather API Demo</title>
-    <div><h1>Current Weather Test</h1><h2 id="city"></h2>
-    <li id="temp"></li>
-    <li id="wind-v"></li>
-    <li id="humidity"></li>
-    <li id="desc"></li>
-    </div>
-        <script src="script.js"></script>
-
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Weather Demo</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; line-height: 1.45; padding: 20px; }
+    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; max-width: 720px; }
+    .row { display: flex; gap: 16px; flex-wrap: wrap; }
+    .col { flex: 1 1 220px; }
+    .kv { margin: 6px 0; }
+    .kv b { display: inline-block; min-width: 160px; }
+    .muted { color:#666; }
+  </style>
 </head>
-
 <body>
-    
+  <h1>Current Weather</h1>
+  <div class="card">
+    <div class="row">
+      <div class="col">
+        <div id="city" class="kv"><b>Location:</b> …</div>
+        <div id="desc" class="kv"><b>Condition:</b> …</div>
+        <div id="temp" class="kv"><b>Temperature:</b> …</div>
+        <div id="base-wind" class="kv"><b>Wind Speed:</b> …</div>
+        <div id="base-humidity" class="kv"><b>Humidity:</b> …</div>
+        <hr/>
+        <div id="uv" class="kv"><b>UV Index:</b> …</div>
+        <div id="precip" class="kv"><b>Precipitation:</b> …</div>
+        <div id="cloud" class="kv"><b>Cloud Cover:</b> …</div>
+        <div id="aqi-pm25" class="kv"><b>PM2.5 (μg/m³):</b> …</div>
+      </div>
+      <div class="col">
+        <div id="category" class="kv"><b>Category:</b> …</div>
+        <div id="metrics-title" class="kv"><b>Category Metrics:</b></div>
+        <div id="metrics"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js" defer></script>
 </body>
 </html>
