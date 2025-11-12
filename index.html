@@ -3,41 +3,60 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>Weather Demo</title>
+  <title>Weather Demo - Immersive Cloud Visualization</title>
+  <link rel="stylesheet" href="style_cloud.css">
   <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; line-height: 1.45; padding: 20px; }
-    .card { border: 1px solid #ddd; border-radius: 12px; padding: 16px; max-width: 720px; }
-    .row { display: flex; gap: 16px; flex-wrap: wrap; }
-    .col { flex: 1 1 220px; }
-    .kv { margin: 6px 0; }
-    .kv b { display: inline-block; min-width: 160px; }
-    .muted { color:#666; }
+    /* Info panel (floating overlay) */
+    #info-panel {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(11, 14, 18, 0.85);
+      border: 1px solid rgba(233, 238, 245, 0.2);
+      border-radius: 8px;
+      padding: 16px;
+      max-width: 300px;
+      color: #e9eef5;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      z-index: 10;
+      pointer-events: auto;
+    }
+    #info-panel h2 {
+      margin: 0 0 12px 0;
+      font-size: 1.2em;
+      border-bottom: 1px solid rgba(233, 238, 245, 0.3);
+      padding-bottom: 8px;
+    }
+    #info-panel .kv {
+      margin: 6px 0;
+      font-size: 0.9em;
+      line-height: 1.4;
+    }
+    #info-panel .kv b {
+      display: inline-block;
+      min-width: 80px;
+      color: #a8d8ff;
+    }
+    small { opacity: 0.6; }
   </style>
 </head>
 <body>
-  <h1>Current Weather</h1>
-  <div class="card">
-    <div class="row">
-      <div class="col">
-        <div id="city" class="kv"><b>Location:</b> …</div>
-        <div id="desc" class="kv"><b>Condition:</b> …</div>
-        <div id="temp" class="kv"><b>Temperature:</b> …</div>
-        <div id="base-wind" class="kv"><b>Wind Speed:</b> …</div>
-        <div id="base-humidity" class="kv"><b>Humidity:</b> …</div>
-        <hr/>
-        <div id="uv" class="kv"><b>UV Index:</b> …</div>
-        <div id="precip" class="kv"><b>Precipitation:</b> …</div>
-        <div id="cloud" class="kv"><b>Cloud Cover:</b> …</div>
-        <div id="aqi-pm25" class="kv"><b>PM2.5 (μg/m³):</b> …</div>
-      </div>
-      <div class="col">
-        <div id="category" class="kv"><b>Category:</b> …</div>
-        <div id="metrics-title" class="kv"><b>Category Metrics:</b></div>
-        <div id="metrics"></div>
-      </div>
-    </div>
+  <!-- Full-screen canvas -->
+  <canvas id="cloud-canvas"></canvas>
+
+  <!-- Floating weather info panel -->
+  <div id="info-panel">
+    <h2 id="city">Loading...</h2>
+    <div class="kv"><b>Condition:</b> <span id="desc">…</span></div>
+    <div class="kv"><b>Temp:</b> <span id="temp">…</span></div>
+    <div class="kv"><b>Wind:</b> <span id="base-wind">…</span></div>
+    <div class="kv"><b>Humidity:</b> <span id="base-humidity">…</span></div>
+    <div class="kv"><b>Cloud:</b> <span id="cloud">…</span></div>
+    <div class="kv"><b>PM2.5:</b> <span id="aqi-pm25">…</span></div>
   </div>
 
+  <!-- Scripts -->
   <script src="script.js" defer></script>
+  <script src="Cloudscript.js" defer></script>
 </body>
 </html>

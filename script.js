@@ -144,32 +144,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     const cur = data.current;
     const aq = cur.air_quality || {};
 
-    // left panel basics
-    setText("city", `Location: ${data.location.name}, ${data.location.country}`);
-    setText("desc", `Condition: ${data.current.condition.text}`);
-    setText("temp", `Temperature: ${data.current.temp_c}°C (Feels like ${data.current.feelslike_c}°C)`);
-    setText("base-wind", `Wind: ${data.current.wind_kph} km/h ${data.current.wind_dir}`);
-    setText("base-humidity", `Humidity: ${data.current.humidity}%`);
-    setText("uv", `UV Index: ${fmt(cur.uv)}`);
-    setText("precip", `Precipitation: ${fmt(cur.precip_mm)} mm`);
-    setText("cloud", `Cloud Cover: ${fmt(cur.cloud)}%`);
-    setText("aqi-pm25", `PM2.5 (μg/m³): ${fmt(aq.pm2_5)}`);
+    // update floating info panel
+    setText("city", `${data.location.name}, ${data.location.country}`);
+    setText("desc", data.current.condition.text);
+    setText("temp", `${data.current.temp_c}°C (feels ${data.current.feelslike_c}°C)`);
+    setText("base-wind", `${data.current.wind_kph} km/h ${data.current.wind_dir}`);
+    setText("base-humidity", `${data.current.humidity}%`);
+    setText("cloud", `${fmt(cur.cloud)}%`);
+    setText("aqi-pm25", `${fmt(aq.pm2_5)} μg/m³`);
 
-    // classify & show category metrics
+    // classify & show category metrics (optional - can hide if space limited)
     const { category } = await classifyCategory(data);
-    setText("category", `Category: ${category}`);
 
     const metrics = pickCategoryMetrics(category, data.current);
-    renderMetrics(metrics);
+    // renderMetrics(metrics); // hidden in immersive mode
 
   } catch (err) {
     console.error(err);
-    setText("city", "Location: —");
-    setText("desc", "Condition: —");
-    setText("temp", "Temperature: —");
-    setText("base-wind", "Wind: —");
-    setText("base-humidity", "Humidity: —");
-    setText("category", "Category: —");
-    renderMetrics({});
+    setText("city", "Unable to load");
+    setText("desc", "—");
+    setText("temp", "—");
+    setText("base-wind", "—");
+    setText("base-humidity", "—");
   }
 });
