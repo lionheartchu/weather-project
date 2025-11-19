@@ -56,29 +56,32 @@ async function getRealtimeWeather() {
   const loc = data.location;
 
   // ----- 更新信息面板 -----
-  const cityEl = document.getElementById("city");
-  if (cityEl) cityEl.textContent = `${loc.name} ${loc.country}  (${loc.localtime})`;
+const cityEl = document.getElementById("city");
+if (cityEl) cityEl.textContent = `${loc.name}, ${loc.country}  (${loc.localtime})`;
 
-  const tempEl = document.getElementById("temp");
-  if (tempEl) tempEl.textContent = `Temperature: ${c.temp_c}°C (Feels like ${c.feelslike_c}°C)`;
+const tempEl = document.getElementById("temp");
+// 只写温度本身
+if (tempEl) tempEl.textContent = `${c.temp_c}°C (Feels like ${c.feelslike_c}°C)`;
 
-  const windEl = document.getElementById("wind-v");
-  if (windEl) windEl.textContent = `Wind: ${c.wind_kph} kph ${c.wind_dir}`;
+const windEl = document.getElementById("wind-v");
+// 只写风速 + 风向
+if (windEl) windEl.textContent = `${c.wind_kph} kph ${c.wind_dir}`;
 
-  const humidityEl = document.getElementById("humidity");
-  if (humidityEl) humidityEl.textContent = `Humidity: ${c.humidity}%`;
+const humidityEl = document.getElementById("humidity");
+// 只写百分比
+if (humidityEl) humidityEl.textContent = `${c.humidity}%`;
 
-  const descEl = document.getElementById("desc");
-  if (descEl) descEl.textContent = `Condition: ${c.condition.text}`;
+const descEl = document.getElementById("desc");
+// 只写天气描述
+if (descEl) descEl.textContent = c.condition.text;
 
-  const cloudPct = clamp(Number(c.cloud ?? 0), 0, 100);     // 0..100%
-  const pm25     = Number(c.air_quality?.pm2_5 ?? 0);       // µg/m³
-  const windKph  = Number(c.wind_kph ?? 0);
+const cloudEl = document.getElementById("cloud");
+// 只写云量 + 百分号
+if (cloudEl) cloudEl.textContent = `${cloudPct}%`;
 
-  const cloudEl = document.getElementById("cloud");
-  if (cloudEl) cloudEl.textContent = `Cloud cover: ${cloudPct}%`;
-  const aqiEl = document.getElementById("aqi");
-  if (aqiEl) aqiEl.textContent   = `PM2.5: ${pm25.toFixed(1)} µg/m³`;
+const aqiEl = document.getElementById("aqi");
+// 只写 PM2.5 数值 + 单位
+if (aqiEl) aqiEl.textContent   = `${pm25.toFixed(1)} µg/m³`;
 
   // ----- 驱动可视化 -----
   if (typeof particleField !== "undefined") {
@@ -155,20 +158,20 @@ class CloudParticle {
       // 选一块云团中心
       const c = centers[(Math.random() * centers.length) | 0];
 
-      // 在云团半径内随机一个偏移（幂次 >1 → 中心更密）
+      // 在云团半径内随机一个偏移（指数分布让中心更密）
       const ang = Math.random() * Math.PI * 2;
-      const rad = c.r * Math.pow(Math.random(), 2.4); // 比之前更收敛
+      const rad = c.r * Math.pow(Math.random(), 1.8);
       const ex  = Math.cos(ang) * rad;
-      const ey  = Math.sin(ang) * rad * 0.35;         // 云团更扁平一点
+      const ey  = Math.sin(ang) * rad * 0.5;      // 稍微扁一点
 
       this.x = c.x + ex;
       this.y = c.y + ey;
 
-      // 基于风向 + 围绕中心的微旋转，让云有翻滚感
+      // 风主导的整体平移 + 很弱的旋转感
       const mag    = Math.sqrt(ex * ex + ey * ey) || 1;
-      const swirl  = 0.03 + 0.06 * Math.random();     // 比上一版稍弱一些
-      this.vx = cfg.windVX + (-ey / mag) * swirl + (Math.random() - 0.5) * 0.015;
-      this.vy = -0.01        + (ex / mag) * swirl + (Math.random() - 0.5) * 0.008;
+      const swirl  = 0.008 + 0.02 * Math.random();   // 比原来小很多 → 不再原地打圈
+      this.vx = cfg.windVX + (-ey / mag) * swirl + (Math.random() - 0.5) * 0.006;
+      this.vy = (ex / mag) * swirl * 0.35 + (Math.random() - 0.5) * 0.004;
     } else {
       // 兜底：还没有中心时用原本随机分布
       this.x = Math.random() * w;
@@ -178,7 +181,7 @@ class CloudParticle {
       this.vy = (Math.random() * 0.2 - 0.1) - 0.02;
     }
 
-    // 尺寸 / 透明度：整体更小、更密
+    // 尺寸 / 透明度：整体偏小、偏密
     const sizeBase = lerp(0.5, 1.6, cfg.cloudT);
     this.r = sizeBase * (0.6 + Math.random() * 1.0);
 
@@ -190,7 +193,8 @@ class CloudParticle {
     this.fill = `rgba(${brownish},${brownish},${grey},${this.alpha})`;
 
     this.life    = 0;
-    this.maxLife = lerp(260, 560, cfg.cloudT) * lerp(1.0, 0.7, hazeT);
+    // ✅ 让云团更持久：寿命大幅增加（大约 20–40 秒才完全换一轮）
+    this.maxLife = lerp(1200, 2600, cfg.cloudT);
     if (first) this.life = Math.random() * this.maxLife;
   }
 
@@ -204,25 +208,26 @@ class CloudParticle {
       const dx = this.x - mouseState.x;
       const dy = this.y - mouseState.y;
       const distSq = dx * dx + dy * dy;
-      const influenceR = 110;
+      const influenceR = 90;
       if (distSq < influenceR * influenceR) {
         const dist = Math.sqrt(distSq) || 1;
-        const strength = (influenceR - dist) / influenceR * 0.40;
+        const strength = (influenceR - dist) / influenceR * 0.30;
         this.vx += (dx / dist) * strength;
         this.vy += (dy / dist) * strength;
       }
     }
 
-    // 回环边界
-    if (this.x < -10) this.x = this.w + 10;
-    if (this.x > this.w + 10) this.x = -10;
-    if (this.y < -20) this.y = this.h + 20;
-    if (this.y > this.h + 20) this.y = -20;
+    // 回环边界：整体云会慢慢飘出屏幕然后从另一侧回来
+    if (this.x < -20) this.x = this.w + 20;
+    if (this.x > this.w + 20) this.x = -20;
+    if (this.y < -40) this.y = this.h + 40;
+    if (this.y > this.h + 40) this.y = -40;
 
     // 微小噪声抖动
-    this.vx += (Math.random() - 0.5) * 0.01;
-    this.vy += (Math.random() - 0.5) * 0.006;
+    this.vx += (Math.random() - 0.5) * 0.004;
+    this.vy += (Math.random() - 0.5) * 0.003;
 
+    // 超过寿命再重生（但是寿命已经很长，所以不会一下子全部消失）
     if (this.life > this.maxLife) {
       this.reset(this.w, this.h, this.cfg);
     }
@@ -256,8 +261,8 @@ class ParticleField {
   }
 
   updateCenters(w, h) {
-    // 云量越大 → 云团稍微多一些，但保持在 3–6 块
-    const targetCenters = Math.max(3, Math.floor(lerp(3, 6, this.cloudT)));
+    // 云量越大 → 云团稍微多一些
+    const targetCenters = Math.max(3, Math.floor(lerp(5, 8, this.cloudT)));
 
     const needReset =
       this.centers.length === 0 ||
@@ -267,31 +272,34 @@ class ParticleField {
     if (needReset) {
       this.centers = [];
       for (let i = 0; i < targetCenters; i++) {
-        // 在中间 70% 区域随机放置云团，避免太平均
-        const x = lerp(w * 0.18, w * 0.82, Math.random());
-        const baseY = lerp(0.22, 0.45, Math.random()); // 略偏上
+        // ✅ 云团中心改为覆盖全屏高度（避免只在上方）
+        const x = lerp(w * 0.10, w * 0.90, Math.random());
+        const baseY = Math.random();              // 0..1 任意高度
         const y = h * baseY;
-        const r = lerp(110, 190, this.cloudT);         // 半径比上一版稍小，更紧凑
+
+        const r = lerp(110, 190, this.cloudT);    // 云团半径
         this.centers.push({
           x,
           y,
           r,
-          vx: this.windVX * 0.35,
-          vy: (Math.random() - 0.5) * 0.03
+          // ✅ 云团本身跟随风左右移动
+          vx: this.windVX * 0.8,
+          vy: (Math.random() - 0.5) * 0.01
         });
       }
       this.centerCount = targetCenters;
       this.lastW = w;
       this.lastH = h;
     } else {
-      // 已有云团缓慢移动 & 从边缘回环
+      // 云团整体缓慢移动 & 从边缘回环
       for (const c of this.centers) {
         c.x += c.vx;
         c.y += c.vy;
 
         if (c.x < -c.r) c.x = w + c.r;
         if (c.x > w + c.r) c.x = -c.r;
-        c.y = clamp(c.y, h * 0.18, h * 0.60);
+        // 限制在屏幕内一点点边距
+        c.y = clamp(c.y, h * 0.05, h * 0.95);
       }
     }
   }
@@ -301,13 +309,15 @@ class ParticleField {
     this.cloudT  = clamp(cloudPct / 100, 0, 1);
     this.pm25    = pm25;
 
-    // 粒子数量明显提高 → 更像「灯泡云」
+    // 粒子数量
     const minCount = 200;
     const maxCount = 2200;
     this.targetCount = Math.floor(lerp(minCount, maxCount, this.cloudT));
 
-    const wT = invLerp(0, 40, windKph);
-    this.windVX = lerp(-0.05, 0.25, wT) * (Math.random() < 0.5 ? -1 : 1);
+    // ✅ 让风变成“稳定的水平速度”，不再随机左右抖来抖去
+    const wT = invLerp(0, 40, windKph);          // 0..1
+    const dir = (Math.random() < 0.5 ? -1 : 1);  // 这一次场景决定往左还是往右
+    this.windVX = dir * lerp(0.02, 0.08, wT);    // 每帧横向位移
 
     const hazeT = invLerp(10, 150, pm25);
     this.hazeAlpha = lerp(0.0, 0.22, hazeT);
@@ -405,10 +415,11 @@ addEventListener("keydown", (ev) => {
   particleField.updateEnvironment(preset);
 
   // 更新信息面板的 cloud / PM2.5 显示
-  const cloudEl = document.getElementById("cloud");
-  if (cloudEl) cloudEl.textContent = `Cloud cover: ${preset.cloudPct}% (manual ${key})`;
-  const aqiEl = document.getElementById("aqi");
-  if (aqiEl) aqiEl.textContent   = `PM2.5: ${preset.pm25.toFixed(1)} µg/m³ (manual ${key})`;
+const cloudEl = document.getElementById("cloud");
+if (cloudEl) cloudEl.textContent = `${preset.cloudPct}% (manual ${key})`;
+
+const aqiEl = document.getElementById("aqi");
+if (aqiEl) aqiEl.textContent   = `${preset.pm25.toFixed(1)} µg/m³ (manual ${key})`;
 });
 
 // ================== Animation Loop & Timers ==================
