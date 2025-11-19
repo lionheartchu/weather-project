@@ -3,21 +3,29 @@ const API_KEY = "bcd80b21e5b74547aa4170545250311";
 
 // 手动预设：键盘 1–4 切换这些场景，0 回到实时天气
 const MANUAL_PRESETS = {
-  '1': { cloudPct: 15, pm25: 5,  windKph: 6  },   // 较晴朗
-  '2': { cloudPct: 45, pm25: 18, windKph: 10 },   // 正常多云
-  '3': { cloudPct: 75, pm25: 45, windKph: 20 },   // 厚云 + 轻度污染
-  '4': { cloudPct: 95, pm25: 110, windKph: 30 }   // 阴沉 + 明显雾霾
+  "1": { cloudPct: 15, pm25: 5, windKph: 6 },    // 较晴朗
+  "2": { cloudPct: 45, pm25: 18, windKph: 10 },  // 正常多云
+  "3": { cloudPct: 75, pm25: 45, windKph: 20 },  // 厚云 + 轻度污染
+  "4": { cloudPct: 95, pm25: 110, windKph: 30 }  // 阴沉 + 明显雾霾
 };
-let manualMode = false;  // true：使用 1–4 手动模式，跳过实时刷新
+let manualMode = false; // true：使用 1–4 手动模式，跳过实时刷新
 
 // ================== Helpers ==================
-function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
-function lerp(a, b, t){ return a + (b - a) * t; }
-function invLerp(a, b, v){ return clamp((v - a) / (b - a), 0, 1); }
+function clamp(v, a, b) {
+  return Math.max(a, Math.min(b, v));
+}
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
+function invLerp(a, b, v) {
+  return clamp((v - a) / (b - a), 0, 1);
+}
 
 // ================== Fetch Realtime Weather ==================
 async function fetchRealtimeWeather(q) {
-  const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${encodeURIComponent(q)}&aqi=yes`;
+  const url = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${encodeURIComponent(
+    q
+  )}&aqi=yes`;
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const data = await res.json();
@@ -36,11 +44,10 @@ async function getRealtimeWeather() {
   if ("geolocation" in navigator) {
     try {
       const pos = await new Promise((resolve, reject) =>
-        navigator.geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          { enableHighAccuracy: true, timeout: 8000 }
-        )
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 8000
+        })
       );
       const lat = pos.coords.latitude.toFixed(6);
       const lon = pos.coords.longitude.toFixed(6);
@@ -52,38 +59,37 @@ async function getRealtimeWeather() {
     data = await fetchRealtimeWeather("auto:ip");
   }
 
-  const c   = data.current;
+  const c = data.current;
   const loc = data.location;
 
-  // ----- 更新信息面板 -----
-const cityEl = document.getElementById("city");
-if (cityEl) cityEl.textContent = `${loc.name}, ${loc.country}  (${loc.localtime})`;
+  // ======= 拿出我们关心的数值 =======
+  const cloudPct = clamp(Number(c.cloud ?? 0), 0, 100); // 0..100%
+  const pm25 = Number(c.air_quality?.pm2_5 ?? 0); // µg/m³
+  const windKph = Number(c.wind_kph ?? 0);
 
-const tempEl = document.getElementById("temp");
-// 只写温度本身
-if (tempEl) tempEl.textContent = `${c.temp_c}°C (Feels like ${c.feelslike_c}°C)`;
+  // ----- 更新信息面板（只写“值”，不重复字段名） -----
+  const cityEl = document.getElementById("city");
+  if (cityEl) cityEl.textContent = `${loc.name}, ${loc.country}  (${loc.localtime})`;
 
-const windEl = document.getElementById("wind-v");
-// 只写风速 + 风向
-if (windEl) windEl.textContent = `${c.wind_kph} kph ${c.wind_dir}`;
+  const tempEl = document.getElementById("temp");
+  if (tempEl) tempEl.textContent = `${c.temp_c}°C (Feels like ${c.feelslike_c}°C)`;
 
-const humidityEl = document.getElementById("humidity");
-// 只写百分比
-if (humidityEl) humidityEl.textContent = `${c.humidity}%`;
+  const windEl = document.getElementById("wind-v");
+  if (windEl) windEl.textContent = `${c.wind_kph} kph ${c.wind_dir}`;
 
-const descEl = document.getElementById("desc");
-// 只写天气描述
-if (descEl) descEl.textContent = c.condition.text;
+  const humEl = document.getElementById("humidity");
+  if (humEl) humEl.textContent = `${c.humidity}%`;
 
-const cloudEl = document.getElementById("cloud");
-// 只写云量 + 百分号
-if (cloudEl) cloudEl.textContent = `${cloudPct}%`;
+  const descEl = document.getElementById("desc");
+  if (descEl) descEl.textContent = c.condition.text;
 
-const aqiEl = document.getElementById("aqi");
-// 只写 PM2.5 数值 + 单位
-if (aqiEl) aqiEl.textContent   = `${pm25.toFixed(1)} µg/m³`;
+  const cloudEl = document.getElementById("cloud");
+  if (cloudEl) cloudEl.textContent = `${cloudPct}%`;
 
-  // ----- 驱动可视化 -----
+  const aqiEl = document.getElementById("aqi");
+  if (aqiEl) aqiEl.textContent = `${pm25.toFixed(1)} µg/m³`;
+
+  // ----- 驱动粒子可视化 -----
   if (typeof particleField !== "undefined") {
     particleField.updateEnvironment({ cloudPct, pm25, windKph });
   }
@@ -93,16 +99,16 @@ if (aqiEl) aqiEl.textContent   = `${pm25.toFixed(1)} µg/m³`;
 
 // ================== Canvas Setup & Mouse State ==================
 let canvas = null;
-let ctx     = null;
+let ctx = null;
 
 const mouseState = { x: 0, y: 0, active: false };
-let mouseBound   = false;
+let mouseBound = false;
 
 function initCanvasIfNeeded() {
   if (canvas && ctx) return;
 
   canvas = document.getElementById("cloud-canvas");
-  ctx    = canvas ? canvas.getContext("2d", { alpha: true }) : null;
+  ctx = canvas ? canvas.getContext("2d", { alpha: true }) : null;
 
   if (!canvas) console.warn("Cloudscript: canvas#cloud-canvas not found in DOM.");
   else console.log("Cloudscript: canvas found", canvas);
@@ -129,19 +135,23 @@ function resize() {
   if (!canvas || !ctx) return;
 
   const dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
-  canvas.width  = Math.floor(canvas.clientWidth  * dpr);
+  canvas.width = Math.floor(canvas.clientWidth * dpr);
   canvas.height = Math.floor(canvas.clientHeight * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
   console.log(
     `Cloudscript: resized canvas to ${canvas.width}x${canvas.height} (client ` +
-    `${canvas.clientWidth}x${canvas.clientHeight}, dpr ${dpr})`
+      `${canvas.clientWidth}x${canvas.clientHeight}, dpr ${dpr})`
   );
 }
 
 addEventListener("resize", resize, { passive: true });
-addEventListener("DOMContentLoaded", () => { resize(); });
-try { resize(); } catch (e) { /* noop */ }
+addEventListener("DOMContentLoaded", () => {
+  resize();
+});
+try {
+  resize();
+} catch (e) {}
 
 // ================== Cloud Particles ==================
 class CloudParticle {
@@ -150,7 +160,9 @@ class CloudParticle {
   }
 
   reset(w, h, cfg, first = false) {
-    this.w = w; this.h = h; this.cfg = cfg;
+    this.w = w;
+    this.h = h;
+    this.cfg = cfg;
 
     const centers = cfg.centers || [];
 
@@ -158,22 +170,22 @@ class CloudParticle {
       // 选一块云团中心
       const c = centers[(Math.random() * centers.length) | 0];
 
-      // 在云团半径内随机一个偏移（指数分布让中心更密）
+      // 在云团半径内随机一个偏移（指数分布：越靠中心越密）
       const ang = Math.random() * Math.PI * 2;
       const rad = c.r * Math.pow(Math.random(), 1.8);
-      const ex  = Math.cos(ang) * rad;
-      const ey  = Math.sin(ang) * rad * 0.5;      // 稍微扁一点
+      const ex = Math.cos(ang) * rad;
+      const ey = Math.sin(ang) * rad * 0.5;
 
       this.x = c.x + ex;
       this.y = c.y + ey;
 
-      // 风主导的整体平移 + 很弱的旋转感
-      const mag    = Math.sqrt(ex * ex + ey * ey) || 1;
-      const swirl  = 0.008 + 0.02 * Math.random();   // 比原来小很多 → 不再原地打圈
+      // 风主导的整体平移 + 轻微旋转感
+      const mag = Math.sqrt(ex * ex + ey * ey) || 1;
+      const swirl = 0.008 + 0.02 * Math.random();
       this.vx = cfg.windVX + (-ey / mag) * swirl + (Math.random() - 0.5) * 0.006;
       this.vy = (ex / mag) * swirl * 0.35 + (Math.random() - 0.5) * 0.004;
     } else {
-      // 兜底：还没有中心时用原本随机分布
+      // 兜底：还没有中心时的随机分布
       this.x = Math.random() * w;
       const tY = Math.random();
       this.y = h * tY * tY;
@@ -186,14 +198,14 @@ class CloudParticle {
     this.r = sizeBase * (0.6 + Math.random() * 1.0);
 
     const hazeT = invLerp(10, 75, cfg.pm25);
-    this.alpha = lerp(0.08, 0.22, cfg.cloudT) * lerp(1.0, 1.4, hazeT);
+    this.alpha = lerp(0.10, 0.28, cfg.cloudT) * lerp(1.0, 1.4, hazeT);
 
-    const grey     = Math.floor(lerp(245, 210, hazeT));
-    const brownish = Math.floor(lerp(245, 185, hazeT * 0.8));
+    const grey = Math.floor(lerp(255, 220, hazeT));
+    const brownish = Math.floor(lerp(255, 210, hazeT * 0.6));
     this.fill = `rgba(${brownish},${brownish},${grey},${this.alpha})`;
 
-    this.life    = 0;
-    // ✅ 让云团更持久：寿命大幅增加（大约 20–40 秒才完全换一轮）
+    this.life = 0;
+    // 较长寿命 → 云团不会一下子全部消失
     this.maxLife = lerp(1200, 2600, cfg.cloudT);
     if (first) this.life = Math.random() * this.maxLife;
   }
@@ -203,7 +215,7 @@ class CloudParticle {
     this.x += this.vx;
     this.y += this.vy;
 
-    // 鼠标吹散：鼠标附近粒子被“吹”离鼠标
+    // 鼠标吹散
     if (mouseState && mouseState.active) {
       const dx = this.x - mouseState.x;
       const dy = this.y - mouseState.y;
@@ -211,13 +223,13 @@ class CloudParticle {
       const influenceR = 90;
       if (distSq < influenceR * influenceR) {
         const dist = Math.sqrt(distSq) || 1;
-        const strength = (influenceR - dist) / influenceR * 0.30;
+        const strength = ((influenceR - dist) / influenceR) * 0.3;
         this.vx += (dx / dist) * strength;
         this.vy += (dy / dist) * strength;
       }
     }
 
-    // 回环边界：整体云会慢慢飘出屏幕然后从另一侧回来
+    // 回环边界
     if (this.x < -20) this.x = this.w + 20;
     if (this.x > this.w + 20) this.x = -20;
     if (this.y < -40) this.y = this.h + 40;
@@ -227,7 +239,6 @@ class CloudParticle {
     this.vx += (Math.random() - 0.5) * 0.004;
     this.vy += (Math.random() - 0.5) * 0.003;
 
-    // 超过寿命再重生（但是寿命已经很长，所以不会一下子全部消失）
     if (this.life > this.maxLife) {
       this.reset(this.w, this.h, this.cfg);
     }
@@ -246,47 +257,69 @@ class ParticleField {
   constructor() {
     this.env = { cloudPct: 0, pm25: 0, windKph: 0 };
     this.cloudT = 0;
-    this.pm25   = 0;
+    this.pm25 = 0;
     this.windVX = 0;
 
     this.targetCount = 0;
-    this.particles   = [];
-    this.hazeAlpha   = 0;
+    this.particles = [];
+    this.hazeAlpha = 0;
 
-    // 云团中心（几大块云）
-    this.centers     = [];
+    this.centers = [];
     this.centerCount = 0;
-    this.lastW       = 0;
-    this.lastH       = 0;
+    this.lastW = 0;
+    this.lastH = 0;
   }
 
+  // 生成云团中心：基于原来的随机逻辑 + “尽量拉开距离（有限次）”
   updateCenters(w, h) {
-    // 云量越大 → 云团稍微多一些
     const targetCenters = Math.max(3, Math.floor(lerp(5, 8, this.cloudT)));
 
     const needReset =
       this.centers.length === 0 ||
       this.centerCount !== targetCenters ||
-      this.lastW !== w || this.lastH !== h;
+      this.lastW !== w ||
+      this.lastH !== h;
 
     if (needReset) {
       this.centers = [];
-      for (let i = 0; i < targetCenters; i++) {
-        // ✅ 云团中心改为覆盖全屏高度（避免只在上方）
-        const x = lerp(w * 0.10, w * 0.90, Math.random());
-        const baseY = Math.random();              // 0..1 任意高度
-        const y = h * baseY;
 
-        const r = lerp(110, 190, this.cloudT);    // 云团半径
+      const baseMin = 180; // 最小距离基准
+      const minCenterDist = lerp(baseMin, baseMin + 120, this.cloudT); // 云量越多 → 稍微拉开点
+
+      for (let i = 0; i < targetCenters; i++) {
+        let x, y;
+        let attempts = 0;
+        let ok = false;
+
+        while (attempts < 10 && !ok) {
+          // 原来的“覆盖全屏”的随机分布
+          x = lerp(w * 0.15, w * 0.85, Math.random());
+          y = lerp(h * 0.15, h * 0.85, Math.random());
+          ok = true;
+
+          for (const c of this.centers) {
+            const dx = x - c.x;
+            const dy = y - c.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minCenterDist) {
+              ok = false;
+              break;
+            }
+          }
+          attempts++;
+        }
+
+        // 如果 10 次都没找到特别远的，就接受最后一次的位置（保证不会死循环）
+        const r = lerp(130, 240, this.cloudT);
         this.centers.push({
           x,
           y,
           r,
-          // ✅ 云团本身跟随风左右移动
           vx: this.windVX * 0.8,
           vy: (Math.random() - 0.5) * 0.01
         });
       }
+
       this.centerCount = targetCenters;
       this.lastW = w;
       this.lastH = h;
@@ -298,35 +331,33 @@ class ParticleField {
 
         if (c.x < -c.r) c.x = w + c.r;
         if (c.x > w + c.r) c.x = -c.r;
-        // 限制在屏幕内一点点边距
         c.y = clamp(c.y, h * 0.05, h * 0.95);
       }
     }
   }
 
   updateEnvironment({ cloudPct, pm25, windKph }) {
-    this.env     = { cloudPct, pm25, windKph };
-    this.cloudT  = clamp(cloudPct / 100, 0, 1);
-    this.pm25    = pm25;
+    this.env = { cloudPct, pm25, windKph };
+    this.cloudT = clamp(cloudPct / 100, 0, 1);
+    this.pm25 = pm25;
 
-    // 粒子数量
     const minCount = 200;
     const maxCount = 2200;
     this.targetCount = Math.floor(lerp(minCount, maxCount, this.cloudT));
 
-    // ✅ 让风变成“稳定的水平速度”，不再随机左右抖来抖去
-    const wT = invLerp(0, 40, windKph);          // 0..1
-    const dir = (Math.random() < 0.5 ? -1 : 1);  // 这一次场景决定往左还是往右
-    this.windVX = dir * lerp(0.02, 0.08, wT);    // 每帧横向位移
+    // 稳定的水平风速
+    const wT = invLerp(0, 40, windKph);
+    const dir = Math.random() < 0.5 ? -1 : 1;
+    this.windVX = dir * lerp(0.02, 0.08, wT);
 
     const hazeT = invLerp(10, 150, pm25);
     this.hazeAlpha = lerp(0.0, 0.22, hazeT);
 
-    // 把最新环境参数同步到每个粒子（包括 centers）
+    // 同步给已有粒子
     for (const p of this.particles) {
       p.cfg = {
         cloudT: this.cloudT,
-        pm25:   this.pm25,
+        pm25: this.pm25,
         windVX: this.windVX,
         centers: this.centers
       };
@@ -338,24 +369,18 @@ class ParticleField {
     const w = canvas.clientWidth;
     const h = canvas.clientHeight;
 
-    // 先更新云团中心
     this.updateCenters(w, h);
 
-    // 补充或裁剪粒子数量
     if (this.particles.length < this.targetCount) {
       const toAdd = this.targetCount - this.particles.length;
       for (let i = 0; i < toAdd; i++) {
         this.particles.push(
-          new CloudParticle(
-            w,
-            h,
-            {
-              cloudT: this.cloudT,
-              pm25:   this.pm25,
-              windVX: this.windVX,
-              centers: this.centers
-            }
-          )
+          new CloudParticle(w, h, {
+            cloudT: this.cloudT,
+            pm25: this.pm25,
+            windVX: this.windVX,
+            centers: this.centers
+          })
         );
       }
     } else if (this.particles.length > this.targetCount) {
@@ -372,20 +397,18 @@ class ParticleField {
 
     ctx.clearRect(0, 0, w, h);
 
-    // 背景渐变（天空）
+    // 背景渐变
     const g = ctx.createLinearGradient(0, 0, 0, h);
     g.addColorStop(0, "#05070b");
     g.addColorStop(1, "#11161f");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
 
-    // 粒子层
     for (const p of this.particles) {
       p.step();
       p.draw(ctx);
     }
 
-    // 全屏雾幕：PM2.5 越高越浊
     if (this.hazeAlpha > 0.001) {
       ctx.fillStyle = `rgba(180,170,160,${this.hazeAlpha})`;
       ctx.fillRect(0, 0, w, h);
@@ -404,7 +427,7 @@ addEventListener("keydown", (ev) => {
   if (key === "0") {
     manualMode = false;
     console.log("Manual override OFF → back to realtime data");
-    getRealtimeWeather();  // 立即刷新一次实时数据
+    getRealtimeWeather();
     return;
   }
   const preset = MANUAL_PRESETS[key];
@@ -414,12 +437,10 @@ addEventListener("keydown", (ev) => {
   console.log("Manual override preset", key, preset);
   particleField.updateEnvironment(preset);
 
-  // 更新信息面板的 cloud / PM2.5 显示
-const cloudEl = document.getElementById("cloud");
-if (cloudEl) cloudEl.textContent = `${preset.cloudPct}% (manual ${key})`;
-
-const aqiEl = document.getElementById("aqi");
-if (aqiEl) aqiEl.textContent   = `${preset.pm25.toFixed(1)} µg/m³ (manual ${key})`;
+  const cloudEl = document.getElementById("cloud");
+  if (cloudEl) cloudEl.textContent = `${preset.cloudPct}% (manual ${key})`;
+  const aqiEl = document.getElementById("aqi");
+  if (aqiEl) aqiEl.textContent = `${preset.pm25.toFixed(1)} µg/m³ (manual ${key})`;
 });
 
 // ================== Animation Loop & Timers ==================
@@ -429,5 +450,5 @@ function loop() {
 }
 loop();
 
-getRealtimeWeather();                             // 启动时拉一次
-setInterval(getRealtimeWeather, 5 * 60 * 1000);   // 每 5 分钟刷新一次
+getRealtimeWeather();
+setInterval(getRealtimeWeather, 5 * 60 * 1000);
